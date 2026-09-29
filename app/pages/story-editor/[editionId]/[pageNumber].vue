@@ -14,7 +14,7 @@
   Keys: T title · B body · Esc stop drawing · Ctrl/Cmd+Z undo · Ctrl/Cmd+S save.
 -->
 <template>
-  <div class="max-w-[1500px] mx-auto px-4 lg:px-6 py-5">
+  <div class="w-full max-w-[1500px] mx-auto px-4 lg:px-6 py-5 block">
     <!-- Top bar -->
     <div class="flex flex-wrap items-center gap-3 mb-4">
       <NuxtLink :to="`/editions/${editionId}?page=${pageNumber}`" class="text-sm text-neutral-500 hover:text-neutral-900">← Edition</NuxtLink>
@@ -230,6 +230,9 @@
 </template>
 
 <script setup>
+// Layout classes passed to <NuxtPage> in app.vue must not reach this page's root.
+defineOptions({ inheritAttrs: false })
+
 const route = useRoute()
 const router = useRouter()
 const editionId = computed(() => String(route.params.editionId))
