@@ -1,0 +1,27 @@
+{
+  "name": "@newvision/handle-epapers",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Editorial admin dashboard for New Vision e-paper edition ingest \u2014 handle.epapers.visiongroup.co.ug",
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "typecheck": "nuxt prepare && vue-tsc -b --noEmit"
+  },
+  "dependencies": {
+    "nuxt": "^4.0.0",
+    "pinia": "^2.2.0",
+    "@pinia/nuxt": "^0.5.5",
+    "jsonwebtoken": "^9.0.2",
+    "tailwindcss": "^4.1.0",
+    "@tailwindcss/vite": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0",
+    "vue-tsc": "^2.1.0"
+  }
+}
