@@ -1,0 +1,80 @@
+/*
+ * File:      /var/www/VGEpaper/handle/app/assets/css/org-desk.css
+ * Repo path: apps/handle/app/assets/css/org-desk.css           NEW FILE
+ *
+ * Shared look for the Organisations pages, matching the Editions desk
+ * (pages/index.vue): same ink/accent colours, Archivo + IBM Plex Mono,
+ * panels, chips and buttons. Everything is nested under .orgdesk, so none
+ * of it can leak into the Editions desk or any other page.
+ * Imported by the two pages under pages/organisations/.
+ */
+.orgdesk {
+  --ink: #0f1b2d; --accent: #2f55e4; --line: rgba(15, 27, 45, .08);
+  font-family: 'Archivo', ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
+  color: var(--ink); background: #eef1f5; min-height: calc(100vh - 56px);
+  display: block; width: 100%;
+}
+.orgdesk .display { font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; font-weight: 800; letter-spacing: -.01em; }
+.orgdesk .mono { font-family: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace; }
+.orgdesk .muted { color: rgba(15, 27, 45, .6); }
+.orgdesk .faint { color: rgba(15, 27, 45, .45); }
+.orgdesk .accent { color: var(--accent); }
+
+.orgdesk .hero { background: linear-gradient(100deg, #d9f3ee 0%, #cdebf1 45%, #d6e3f8 100%); border-bottom: 1px solid var(--line); }
+.orgdesk .hero-inner { max-width: 1400px; margin: 0 auto; padding: 22px 24px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 32px; }
+.orgdesk .wrap { max-width: 1400px; margin: 0 auto; padding: 20px 24px 40px; }
+@media (max-width: 700px) { .orgdesk .hero-inner, .orgdesk .wrap { padding-left: 16px; padding-right: 16px; } }
+
+.orgdesk .panel { background: #fff; border-radius: 14px; box-shadow: 0 1px 2px rgba(15,27,45,.05), 0 0 0 1px var(--line); }
+.orgdesk .field { width: 100%; height: 40px; padding: 0 12px; border-radius: 10px; background: #fff; border: 1px solid rgba(15,27,45,.14); font-size: 13px; color: var(--ink); }
+.orgdesk textarea.field { height: auto; padding: 10px 12px; min-height: 72px; }
+.orgdesk .label { display: block; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; color: rgba(15,27,45,.6); margin-bottom: 4px; }
+.orgdesk .hint { font-size: 11px; color: rgba(15,27,45,.55); margin-top: 4px; }
+
+.orgdesk .seg { display: inline-flex; flex-wrap: wrap; background: rgba(255,255,255,.55); border: 1px solid rgba(255,255,255,.8); border-radius: 12px; padding: 3px; }
+.orgdesk .seg-light { background: rgba(15,27,45,.04); border-color: transparent; }
+.orgdesk .seg-btn { height: 32px; padding: 0 12px; border-radius: 9px; font-size: 13px; color: rgba(15,27,45,.7); white-space: nowrap; }
+.orgdesk .seg-btn:hover { color: var(--ink); }
+.orgdesk .seg-on { background: #fff; color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(15,27,45,.08); }
+.orgdesk .seg-n { font-family: 'IBM Plex Mono', ui-monospace, monospace; color: var(--accent); margin-left: 2px; }
+
+.orgdesk .chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 7px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; white-space: nowrap; }
+.orgdesk .chip .dot { width: 6px; height: 6px; border-radius: 9999px; background: currentColor; flex-shrink: 0; }
+.orgdesk .chip-accent { background: #e8edff; color: #2442c4; } .orgdesk .chip-green { background: #e3f7ef; color: #0f7a55; }
+.orgdesk .chip-blue { background: #e4f1fe; color: #1f6fc4; } .orgdesk .chip-amber { background: #fff2dc; color: #9a5a05; }
+.orgdesk .chip-red { background: #fde8e5; color: #b3261e; } .orgdesk .chip-grey { background: rgba(15,27,45,.06); color: rgba(15,27,45,.6); }
+
+.orgdesk .btn-ink { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 10px; background: #0f1b2d; color: #fff !important; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.orgdesk .btn-ink:hover:not(:disabled) { background: #24344e; } .orgdesk .btn-ink:disabled { opacity: .55; cursor: not-allowed; }
+.orgdesk .btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 10px; background: #fff; color: #0f1b2d; box-shadow: 0 0 0 1px rgba(15,27,45,.12); font-size: 13px; font-weight: 500; white-space: nowrap; }
+.orgdesk .btn-ghost:disabled { opacity: .5; cursor: not-allowed; }
+.orgdesk .btn-soft { display: inline-flex; align-items: center; height: 30px; padding: 0 10px; border-radius: 8px; font-size: 12px; background: rgba(15,27,45,.05); white-space: nowrap; }
+.orgdesk .btn-soft:hover:not(:disabled) { background: rgba(15,27,45,.09); } .orgdesk .btn-soft:disabled { opacity: .4; cursor: not-allowed; }
+.orgdesk .btn-danger { display: inline-flex; align-items: center; justify-content: center; height: 36px; padding: 0 14px; border-radius: 10px; background: #b3261e; color: #fff; font-size: 13px; font-weight: 600; }
+.orgdesk .btn-danger:disabled { opacity: .55; }
+.orgdesk .btn-soft-danger { color: #b3261e; }
+
+.orgdesk .stat { padding: 14px 16px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px var(--line); border-top: 4px solid var(--accent); }
+.orgdesk .stat.edge-green { border-top-color: #22b389; } .orgdesk .stat.edge-amber { border-top-color: #f0a42f; }
+.orgdesk .stat.edge-red { border-top-color: #e04d3a; } .orgdesk .stat.edge-grey { border-top-color: rgba(15,27,45,.2); }
+
+.orgdesk table.otable { width: 100%; border-collapse: collapse; font-size: 13px; }
+.orgdesk table.otable th { text-align: left; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; font-weight: 500; color: rgba(15,27,45,.55); padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.orgdesk table.otable td { padding: 10px 12px; border-bottom: 1px solid rgba(15,27,45,.05); vertical-align: middle; }
+.orgdesk table.otable tr:last-child td { border-bottom: 0; }
+.orgdesk table.otable tr.clickable { cursor: pointer; } .orgdesk table.otable tr.clickable:hover td { background: #f6f8ff; }
+.orgdesk .table-scroll { overflow-x: auto; }
+
+.orgdesk .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.orgdesk .tab { padding: 10px 14px; font-size: 13px; color: rgba(15,27,45,.65); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+.orgdesk .tab:hover { color: var(--ink); }
+.orgdesk .tab-on { color: var(--ink); font-weight: 600; border-bottom-color: var(--accent); }
+
+.orgdesk .notice { padding: 10px 12px; border-radius: 10px; font-size: 13px; }
+.orgdesk .notice-ok { background: #e3f7ef; color: #0f6b4b; } .orgdesk .notice-err { background: #fde8e5; color: #9b2019; }
+.orgdesk .notice-warn { background: #fff2dc; color: #8a5004; }
+
+.orgdesk .overlay { position: fixed; inset: 0; background: rgba(15,27,45,.45); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
+.orgdesk .dialog { width: 100%; max-width: 460px; background: #fff; border-radius: 16px; padding: 22px; box-shadow: 0 24px 48px -12px rgba(15,27,45,.35); }
+
+.orgdesk button:focus-visible, .orgdesk a:focus-visible, .orgdesk input:focus-visible, .orgdesk select:focus-visible, .orgdesk textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
