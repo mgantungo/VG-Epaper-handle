@@ -61,7 +61,11 @@ export function useHandleApi() {
     removeAdmin: (id, seatId) => org(`${id}/admins/${seatId}`, { method: 'DELETE' }),
     members: (id, query = {}) => org(`${id}/members`, { query }),
     setMemberStatus: (id, seatId, status, reason) => org(`${id}/members/${seatId}/status`, { method: 'POST', body: { status, reason } }),
-    audit: (id, query = {}) => org(`${id}/audit`, { query })
+    audit: (id, query = {}) => org(`${id}/audit`, { query }),
+    // members spreadsheet: a plain link downloads it (same-origin, cookie rides along)
+    templateUrl: (id) => `/api/organisations/${id}/import/template`,
+    previewImport: (id, formData) => org(`${id}/import/preview`, { method: 'POST', body: formData }),
+    commitImport: (id, importId) => org(`${id}/import/${importId}/commit`, { method: 'POST' })
   }
 
   return { login, verifyToken, logout, me, listEditions, createEdition, getEdition, orgRights, orgs }

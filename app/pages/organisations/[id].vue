@@ -1,12 +1,14 @@
 <!--
   File:      /var/www/VGEpaper/handle/app/pages/organisations/[id].vue
   Repo path: apps/handle/app/pages/organisations/[id].vue          NEW FILE
-  URL:       /organisations/:id   (?tab=periods|members|admins|activity|details)
+  URL:       /organisations/:id   (?tab=periods|members|spreadsheet|admins|activity|details)
 
   One organisation: status actions (suspend / reactivate / archive, each
   with a reason), seat and paid-period summary, and tabs for paid periods
   (add, extend, revoke), Org Admins (assign, demote), members (read-only
   list with force suspend / reactivate), activity log and editable details.
+  UPDATED: "Spreadsheet" tab (components/OrgImportPanel.vue): download the
+  members spreadsheet, fill it in, upload, preview, apply.
 -->
 <template>
   <div class="orgdesk">
@@ -183,6 +185,11 @@
             </nav>
           </div>
 
+          <!-- Spreadsheet -->
+          <div v-else-if="tab === 'spreadsheet'" class="p-4">
+            <OrgImportPanel :org-id="id" :paid-until="summary.current?.coverageEnd || null" @applied="onImported" />
+          </div>
+
           <!-- Activity -->
           <div v-else-if="tab === 'activity'" class="p-4">
             <ul class="divide-y" style="border-color: var(--line)">
@@ -310,11 +317,12 @@ async function act(fn, okText) {
 }
 
 // ---- tabs ----
-const tab = ref(['periods', 'admins', 'members', 'activity', 'details'].includes(route.query.tab) ? route.query.tab : 'periods')
+const tab = ref(['periods', 'admins', 'members', 'spreadsheet', 'activity', 'details'].includes(route.query.tab) ? route.query.tab : 'periods')
 const tabs = computed(() => [
   { key: 'periods', label: 'Paid periods', count: detail.value?.contracts.length },
   { key: 'admins', label: 'Org Admins', count: detail.value?.admins.length },
   { key: 'members', label: 'Members', count: detail.value ? detail.value.seats.inUse + detail.value.seats.suspended : undefined },
+  { key: 'spreadsheet', label: 'Spreadsheet' },
   { key: 'activity', label: 'Activity' },
   { key: 'details', label: 'Details' }
 ])
@@ -458,6 +466,11 @@ function askMemberStatus(m, status) {
     ok: status === 'suspended' ? 'Member suspended.' : 'Member reactivated.',
     after: async () => { await Promise.all([loadMembers(), load()]) }
   })
+}
+
+async function onImported() {
+  membersLoaded = false
+  await load()
 }
 
 // ---- activity ----
