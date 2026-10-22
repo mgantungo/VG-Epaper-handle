@@ -9,6 +9,10 @@
   list with force suspend / reactivate), activity log and editable details.
   UPDATED: "Spreadsheet" tab (components/OrgImportPanel.vue): download the
   members spreadsheet, fill it in, upload, preview, apply.
+  UPDATED (Phase 0, publications): a paid period is priced by hand per
+  publication (components/PaidPeriodLines.vue), each with its own seats and
+  amount; a seat-use strip per publication; and each member's publications
+  can be switched on or off in the Members tab.
 -->
 <template>
   <div class="orgdesk">
@@ -60,6 +64,14 @@
           </div>
         </div>
 
+        <!-- per-publication seats -->
+        <div v-if="detail.publications?.length" class="flex flex-wrap gap-2 mt-3" aria-label="Seats per publication">
+          <span v-for="p in detail.publications" :key="p.code" class="chip" :class="pubSeatTone(p)">
+            {{ p.code }} · {{ p.inUse }} / {{ p.seats ?? '∞' }} seats ·
+            {{ p.current ? `until ${fmtDate(p.current.end)}` : p.next ? `from ${fmtDate(p.next.start)}` : `ended ${fmtDate(p.latestEnd)}` }}
+          </span>
+        </div>
+
         <!-- tabs -->
         <section class="panel mt-5">
           <nav class="tabs px-3" role="tablist">
@@ -70,12 +82,17 @@
 
           <!-- Paid periods -->
           <div v-if="tab === 'periods'" class="p-4">
-            <p class="text-[13px] muted max-w-3xl">Members can only read editions dated inside a paid period, and only within the access their Org Admin gives them. Revoking a period cuts access for those dates immediately.</p>
+            <p class="text-[13px] muted max-w-3xl">Each publication is its own line, priced by hand, with its own seats. Members read a publication only inside its paid period, only if it is switched on for them, and only within the access their Org Admin gives them. Revoking a line cuts that publication for those dates immediately.</p>
             <div class="table-scroll mt-3">
               <table v-if="detail.contracts.length" class="otable">
-                <thead><tr><th>From</th><th>Until</th><th>Amount</th><th>Reference</th><th>State</th><th class="text-right">Actions</th></tr></thead>
+                <thead><tr><th>Publication</th><th>From</th><th>Until</th><th class="text-right">Seats</th><th class="text-right">Amount</th><th>Reference</th><th>State</th><th class="text-right">Actions</th></tr></thead>
                 <tbody>
                   <tr v-for="c in detail.contracts" :key="c.id">
+                    <td>
+                      <span v-if="c.publication" class="chip chip-accent">{{ c.publication.code }}</span>
+                      <span v-else class="chip chip-amber" title="Created before per-publication contracts; opens nothing">no publication</span>
+                      <span v-if="c.publication" class="text-[12px] muted ml-1">{{ c.publication.name }}</span>
+                    </td>
                     <td class="mono">{{ fmtDate(c.coverageStart) }}</td>
                     <td class="mono">
                       <template v-if="editingContract === c.id">
@@ -83,8 +100,14 @@
                       </template>
                       <template v-else>{{ fmtDate(c.coverageEnd) }}</template>
                     </td>
-                    <td class="mono">{{ c.amountPaid != null ? `${Number(c.amountPaid).toLocaleString()} ${c.currency || ''}` : '—' }}</td>
-                    <td class="text-[12px]">{{ c.note || c.plan?.label || '—' }}</td>
+                    <td class="mono text-right">
+                      <template v-if="editingContract === c.id">
+                        <input v-model="contractSeatsDraft" type="number" min="1" class="field !h-8 !w-20 text-right" aria-label="Seats">
+                      </template>
+                      <template v-else>{{ c.seats ?? '—' }}</template>
+                    </td>
+                    <td class="mono text-right">{{ c.amountPaid != null ? `${Number(c.amountPaid).toLocaleString()} ${c.currency || ''}` : '—' }}</td>
+                    <td class="text-[12px]">{{ c.reference || c.note || c.plan?.label || '—' }}</td>
                     <td><span class="chip" :class="periodChip(c).cls"><span class="dot" />{{ periodChip(c).text }}</span></td>
                     <td class="text-right whitespace-nowrap">
                       <template v-if="editingContract === c.id">
@@ -92,7 +115,7 @@
                         <button class="btn-soft ml-1" @click="editingContract = null">Cancel</button>
                       </template>
                       <template v-else>
-                        <button class="btn-soft" @click="editingContract = c.id; contractEndDraft = c.coverageEnd">Change end</button>
+                        <button class="btn-soft" @click="editingContract = c.id; contractEndDraft = c.coverageEnd; contractSeatsDraft = c.seats ?? ''">Change</button>
                         <button class="btn-soft btn-soft-danger ml-1" @click="askRevoke(c)">Revoke</button>
                       </template>
                     </td>
@@ -102,12 +125,19 @@
               <p v-else class="text-sm muted py-3">No paid periods yet. Add one so members can read.</p>
             </div>
 
-            <form class="mt-4 grid gap-3 md:grid-cols-5 items-end p-4 rounded-xl" style="background:#f5f7ff; box-shadow: inset 0 0 0 1px rgba(47,85,228,.25)" @submit.prevent="addContract">
-              <div><label class="label" for="p-start">Start *</label><input id="p-start" v-model="contractForm.coverageStart" type="date" class="field" required></div>
-              <div><label class="label" for="p-end">End *</label><input id="p-end" v-model="contractForm.coverageEnd" type="date" class="field" required :min="contractForm.coverageStart"></div>
-              <div><label class="label" for="p-amt">Amount (UGX)</label><input id="p-amt" v-model="contractForm.amountPaid" type="number" min="0" class="field"></div>
-              <div><label class="label" for="p-note">Reference</label><input id="p-note" v-model.trim="contractForm.note" class="field" placeholder="Invoice, LPO…"></div>
-              <button class="btn-ink" :disabled="busy">Add paid period</button>
+            <form class="mt-4 p-4 rounded-xl space-y-3" style="background:#f5f7ff; box-shadow: inset 0 0 0 1px rgba(47,85,228,.25)" @submit.prevent="addContract">
+              <p class="display text-[15px]">Add a paid period</p>
+              <div class="grid gap-3 md:grid-cols-4 items-end">
+                <div><label class="label" for="p-start">Start *</label><input id="p-start" v-model="contractForm.coverageStart" type="date" class="field" required></div>
+                <div><label class="label" for="p-end">End *</label><input id="p-end" v-model="contractForm.coverageEnd" type="date" class="field" required :min="contractForm.coverageStart"></div>
+                <div><label class="label" for="p-ref">Reference</label><input id="p-ref" v-model.trim="contractForm.reference" class="field" placeholder="Invoice, LPO…"></div>
+                <div><label class="label" for="p-note">Note</label><input id="p-note" v-model.trim="contractForm.note" class="field" placeholder="e.g. quarterly renewal"></div>
+              </div>
+              <PaidPeriodLines v-model="contractLines" :publications="publications" :default-seats="detail.seats.limit || ''" />
+              <div class="flex flex-wrap items-center gap-3">
+                <button class="btn-ink" :disabled="busy || !contractLines.length">Add paid period</button>
+                <span class="text-[12px] muted">Members keep their current publications; switch new ones on for them in the Members tab.</span>
+              </div>
             </form>
           </div>
 
@@ -150,7 +180,7 @@
             <p class="text-[12px] muted mt-2">Members are managed by the Org Admin. You can force-suspend or reactivate anyone here.</p>
             <div class="table-scroll mt-3">
               <table v-if="members.length" class="otable">
-                <thead><tr><th>Member</th><th>Role</th><th>Status</th><th>Access</th><th>Added</th><th class="text-right">Actions</th></tr></thead>
+                <thead><tr><th>Member</th><th>Role</th><th>Status</th><th>Publications</th><th>Access</th><th>Added</th><th class="text-right">Actions</th></tr></thead>
                 <tbody>
                   <tr v-for="m in members" :key="m.seatId">
                     <td>
@@ -161,6 +191,15 @@
                     <td>
                       <span class="chip" :class="m.status === 'active' ? 'chip-green' : 'chip-amber'"><span class="dot" />{{ m.status }}</span>
                       <span v-if="m.invitePending" class="chip chip-blue ml-1">invite pending</span>
+                    </td>
+                    <td>
+                      <div class="flex flex-wrap gap-1">
+                        <label v-for="p in detail.publications" :key="p.code" class="chip cursor-pointer" :class="memberReads(m, p.code) ? 'chip-accent' : 'chip-grey'">
+                          <input type="checkbox" class="sr-only" :checked="memberReads(m, p.code)" :disabled="busy" @change="toggleMemberPub(m, p.code, $event.target.checked)">
+                          {{ p.code }}
+                        </label>
+                        <span v-if="m.publications === null" class="text-[11px] faint">all (older seat)</span>
+                      </div>
                     </td>
                     <td class="mono text-[12px]">
                       <template v-if="m.access.contractWide">whole paid period</template>
@@ -266,9 +305,21 @@ useHead({
 
 const route = useRoute()
 const router = useRouter()
-const { orgs } = useHandleApi()
+const { orgs, catalogue } = useHandleApi()
 const id = computed(() => String(route.params.id))
-const today = new Date().toISOString().slice(0, 10)
+// Kampala calendar day (UTC+3), the same "today" the reader site uses
+const today = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10)
+
+// Active publications, for the paid-period lines
+const publications = ref([])
+async function loadPublications() {
+  try {
+    const res = await catalogue.publications()
+    publications.value = (res.publications || []).filter((p) => p.active)
+  } catch (e) {
+    say(errMsg(e, 'Publications could not be loaded.'), false)
+  }
+}
 
 const detail = ref(null)
 const loadError = ref('')
@@ -372,9 +423,11 @@ async function runDialog() {
 }
 
 // ---- paid periods ----
-const contractForm = reactive({ coverageStart: '', coverageEnd: '', amountPaid: '', note: '' })
+const contractForm = reactive({ coverageStart: '', coverageEnd: '', reference: '', note: '' })
+const contractLines = ref([])
 const editingContract = ref(null)
 const contractEndDraft = ref('')
+const contractSeatsDraft = ref('')
 
 function periodChip(c) {
   if (c.coverageEnd < today) return { text: 'ended', cls: 'chip-grey' }
@@ -383,24 +436,37 @@ function periodChip(c) {
 }
 async function addContract() {
   if (contractForm.coverageStart > contractForm.coverageEnd) { say('The paid period must end on or after its start.', false); return }
+  if (!contractLines.value.length) { say('Tick at least one publication.', false); return }
+  const bad = contractLines.value.find((l) => !(Number(l.seats) >= 1))
+  if (bad) { say(`${bad.code}: give at least 1 seat.`, false); return }
   const ok = await act(() => orgs.addContract(id.value, {
     coverageStart: contractForm.coverageStart,
     coverageEnd: contractForm.coverageEnd,
-    amountPaid: contractForm.amountPaid === '' ? null : Number(contractForm.amountPaid),
-    currency: 'UGX',
-    note: contractForm.note || null
+    reference: contractForm.reference || null,
+    note: contractForm.note || null,
+    lines: contractLines.value.map((l) => ({
+      publicationCode: l.code,
+      seats: Number(l.seats),
+      amount: l.amount === '' || l.amount === null ? null : Number(l.amount),
+      currency: 'UGX'
+    }))
   }), 'Paid period added.')
-  if (ok) Object.assign(contractForm, { coverageStart: '', coverageEnd: '', amountPaid: '', note: '' })
+  if (ok) {
+    Object.assign(contractForm, { coverageStart: '', coverageEnd: '', reference: '', note: '' })
+    contractLines.value = []
+  }
 }
 async function saveContractEnd(c) {
   if (!contractEndDraft.value || contractEndDraft.value < c.coverageStart) { say('Choose an end date on or after the start.', false); return }
-  const ok = await act(() => orgs.updateContract(id.value, c.id, { coverageEnd: contractEndDraft.value }), 'Paid period updated.')
+  const body = { coverageEnd: contractEndDraft.value }
+  if (contractSeatsDraft.value !== '' && Number(contractSeatsDraft.value) !== c.seats) body.seats = Number(contractSeatsDraft.value)
+  const ok = await act(() => orgs.updateContract(id.value, c.id, body), 'Paid period updated.')
   if (ok) editingContract.value = null
 }
 function askRevoke(c) {
   dialog.value = {
     title: 'Revoke paid period',
-    text: `${fmtDate(c.coverageStart)} – ${fmtDate(c.coverageEnd)}. Members lose access to editions in these dates unless another paid period covers them. Use this for refunds or mistakes; it stays in the activity log.`,
+    text: `${c.publication?.code || ''} ${fmtDate(c.coverageStart)} – ${fmtDate(c.coverageEnd)}. Members lose ${c.publication?.name || 'this publication'} for these dates unless another paid period covers them. Use this for refunds or mistakes; it stays in the activity log.`,
     confirm: 'Revoke', danger: true, reason: '', reasonRequired: true,
     run: (d) => orgs.revokeContract(id.value, c.id, d.reason),
     ok: 'Paid period revoked.'
@@ -468,6 +534,29 @@ function askMemberStatus(m, status) {
   })
 }
 
+// ---- member publications ----
+const memberReads = (m, code) => m.publications === null || (m.publications || []).includes(code)
+async function toggleMemberPub(m, code, on) {
+  const current = m.publications === null ? (detail.value?.publications || []).map((p) => p.code) : (m.publications || [])
+  const next = on ? [...new Set([...current, code])] : current.filter((c) => c !== code)
+  busy.value = true
+  try {
+    const res = await orgs.setMemberPublications(id.value, m.seatId, next)
+    m.publications = res.publications
+    say(`${m.user?.email}: ${next.length ? next.join(', ') : 'no publications'}.`)
+    await load()
+  } catch (e) {
+    say(errMsg(e, 'That did not work.'), false)
+  } finally {
+    busy.value = false
+  }
+}
+function pubSeatTone(p) {
+  if (!p.current && !p.next) return 'chip-grey'
+  if (p.seats == null) return 'chip-green'
+  return p.inUse >= p.seats ? 'chip-red' : p.inUse >= p.seats * 0.9 ? 'chip-amber' : 'chip-green'
+}
+
 async function onImported() {
   membersLoaded = false
   await load()
@@ -499,6 +588,7 @@ const ACTION_LABELS = {
   'contract.create': 'Paid period added', 'contract.extend': 'Paid period changed', 'contract.revoke': 'Paid period revoked',
   'member.add': 'Member added', 'member.invite': 'Invite sent', 'member.suspend': 'Member suspended',
   'member.reactivate': 'Member reactivated', 'member.remove': 'Member removed', 'member.role': 'Role changed',
+  'member.publications': 'Publications changed',
   'access.create': 'Access granted', 'access.extend': 'Access extended', 'access.revoke': 'Access revoked',
   'import.preview': 'Spreadsheet checked', 'import.commit': 'Spreadsheet applied', 'import.fail': 'Spreadsheet failed'
 }
@@ -509,7 +599,8 @@ function metaText(e) {
   if (e.action === 'member.role') return `${m.from} → ${m.to}`
   if (e.action === 'access.create' && m.start) return `${fmtDate(m.start)} – ${fmtDate(m.end)}`
   if (e.action === 'access.extend' && m.to) return `now until ${fmtDate(m.to.end)}`
-  if (e.action === 'contract.create' && m.coverageStart) return `${fmtDate(m.coverageStart)} – ${fmtDate(m.coverageEnd)}`
+  if (e.action === 'member.publications') return `${(m.from || ['all']).join(', ') || 'none'} → ${(m.to || []).join(', ') || 'none'}`
+  if (e.action === 'contract.create' && m.coverageStart) return `${m.publication ? `${m.publication} · ${m.seats} seats · ` : ''}${fmtDate(m.coverageStart)} – ${fmtDate(m.coverageEnd)}`
   if (e.action === 'contract.extend' && m.to) return `now ${fmtDate(m.to.start)} – ${fmtDate(m.to.end)}`
   if (e.action === 'import.commit') return `${m.created ?? 0} new, ${m.added ?? 0} added, ${m.extended ?? 0} extended, ${m.skipped ?? 0} skipped`
   if (e.action === 'import.preview') return m.filename || ''
@@ -537,6 +628,7 @@ async function saveDetails() {
 }
 
 onMounted(async () => {
+  loadPublications()
   await load()
   if (tab.value === 'members') loadMembers()
   if (tab.value === 'activity') loadAudit()

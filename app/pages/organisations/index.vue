@@ -54,8 +54,8 @@
             <input id="c-cphone" v-model.trim="form.contactPhone" class="field">
           </div>
 
-          <fieldset class="md:col-span-2 grid gap-4 md:grid-cols-4 p-4 rounded-xl" style="background:#f5f7ff; box-shadow: inset 0 0 0 1px rgba(47,85,228,.25)">
-            <legend class="mono text-[11px] accent px-1">First paid period (optional)</legend>
+          <fieldset class="md:col-span-2 grid gap-4 md:grid-cols-3 p-4 rounded-xl" style="background:#f5f7ff; box-shadow: inset 0 0 0 1px rgba(47,85,228,.25)">
+            <legend class="mono text-[11px] accent px-1">First paid period (optional) — priced by hand per publication</legend>
             <div>
               <label class="label" for="c-start">Start</label>
               <input id="c-start" v-model="form.contractStart" class="field" type="date">
@@ -65,12 +65,11 @@
               <input id="c-end" v-model="form.contractEnd" class="field" type="date">
             </div>
             <div>
-              <label class="label" for="c-amount">Amount paid (UGX)</label>
-              <input id="c-amount" v-model="form.amountPaid" class="field" type="number" min="0" step="1">
-            </div>
-            <div>
-              <label class="label" for="c-note">Reference / note</label>
+              <label class="label" for="c-note">Reference</label>
               <input id="c-note" v-model.trim="form.contractNote" class="field" placeholder="Invoice no., LPO…">
+            </div>
+            <div class="md:col-span-3">
+              <PaidPeriodLines v-model="form.lines" :publications="publications" :default-seats="form.seatLimit || ''" />
             </div>
           </fieldset>
 
@@ -156,8 +155,17 @@ useHead({
   ]
 })
 
-const { orgs } = useHandleApi()
-const today = new Date().toISOString().slice(0, 10)
+const { orgs, catalogue } = useHandleApi()
+// Kampala calendar day (UTC+3)
+const today = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10)
+
+const publications = ref([])
+onMounted(async () => {
+  try {
+    const res = await catalogue.publications()
+    publications.value = (res.publications || []).filter((p) => p.active)
+  } catch { /* the form says so if a paid period is attempted without publications */ }
+})
 
 const statusFilters = [
   { value: '', label: 'All' },
@@ -201,7 +209,7 @@ onUnmounted(() => clearTimeout(searchTimer))
 const creating = ref(false)
 const saving = ref(false)
 const createError = ref('')
-const blank = () => ({ name: '', seatLimit: '', contactName: '', contactEmail: '', contactPhone: '', notes: '', contractStart: '', contractEnd: '', amountPaid: '', contractNote: '', adminEmail: '' })
+const blank = () => ({ name: '', seatLimit: '', contactName: '', contactEmail: '', contactPhone: '', notes: '', contractStart: '', contractEnd: '', contractNote: '', lines: [], adminEmail: '' })
 const form = reactive(blank())
 
 function openCreate() {
@@ -216,6 +224,9 @@ async function submitCreate() {
   const hasEnd = Boolean(form.contractEnd)
   if (hasStart !== hasEnd) { createError.value = 'Give both a start and an end date for the paid period, or neither.'; return }
   if (hasStart && form.contractStart > form.contractEnd) { createError.value = 'The paid period must end on or after its start.'; return }
+  if (hasStart && !form.lines.length) { createError.value = 'Tick the publications this paid period covers, with seats and amount for each.'; return }
+  const badLine = form.lines.find((l) => !(Number(l.seats) >= 1))
+  if (hasStart && badLine) { createError.value = `${badLine.code}: give at least 1 seat.`; return }
 
   const body = {
     name: form.name,
@@ -229,9 +240,13 @@ async function submitCreate() {
       contract: {
         coverageStart: form.contractStart,
         coverageEnd: form.contractEnd,
-        amountPaid: form.amountPaid === '' ? null : Number(form.amountPaid),
-        currency: 'UGX',
-        note: form.contractNote || null
+        reference: form.contractNote || null,
+        lines: form.lines.map((l) => ({
+          publicationCode: l.code,
+          seats: Number(l.seats),
+          amount: l.amount === '' || l.amount === null ? null : Number(l.amount),
+          currency: 'UGX'
+        }))
       }
     } : {})
   }

@@ -9,6 +9,9 @@
  * /api/organisations/* (server/api/organisations/[...path].ts). "index"
  * stands for the collection root, since a catch-all route can't match the
  * bare /api/organisations path.
+ *
+ * UPDATED (Phase 0): `catalogue`, a client for /api/catalogue/*
+ * (publications, plans and prices), and orgs.setMemberPublications.
  */
 export function useHandleApi() {
   async function login(email, password) {
@@ -61,6 +64,7 @@ export function useHandleApi() {
     removeAdmin: (id, seatId) => org(`${id}/admins/${seatId}`, { method: 'DELETE' }),
     members: (id, query = {}) => org(`${id}/members`, { query }),
     setMemberStatus: (id, seatId, status, reason) => org(`${id}/members/${seatId}/status`, { method: 'POST', body: { status, reason } }),
+    setMemberPublications: (id, seatId, publications) => org(`${id}/members/${seatId}/publications`, { method: 'POST', body: { publications } }),
     audit: (id, query = {}) => org(`${id}/audit`, { query }),
     // members spreadsheet: a plain link downloads it (same-origin, cookie rides along)
     templateUrl: (id) => `/api/organisations/${id}/import/template`,
@@ -68,5 +72,19 @@ export function useHandleApi() {
     commitImport: (id, importId) => org(`${id}/import/${importId}/commit`, { method: 'POST' })
   }
 
-  return { login, verifyToken, logout, me, listEditions, createEdition, getEdition, orgRights, orgs }
+  const cat = (path, opts = {}) => $fetch(`/api/catalogue/${path}`, opts)
+  const catalogue = {
+    publications: () => cat('publications'),
+    createPublication: (body) => cat('publications', { method: 'POST', body }),
+    updatePublication: (id, body) => cat(`publications/${id}`, { method: 'PATCH', body }),
+    plans: () => cat('plans'),
+    createPlan: (body) => cat('plans', { method: 'POST', body }),
+    updatePlan: (key, body) => cat(`plans/${key}`, { method: 'PATCH', body }),
+    newPlanVersion: (key, body) => cat(`plans/${key}/versions`, { method: 'POST', body }),
+    stopPlan: (key) => cat(`plans/${key}/stop`, { method: 'POST' }),
+    resumePlan: (key) => cat(`plans/${key}/resume`, { method: 'POST' }),
+    suggestSplit: (publications) => cat('plans/split-suggestion', { method: 'POST', body: { publications } })
+  }
+
+  return { login, verifyToken, logout, me, listEditions, createEdition, getEdition, orgRights, orgs, catalogue }
 }

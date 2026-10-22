@@ -13,19 +13,21 @@
       </label>
 
       <label class="block">
-        <span class="text-xs font-mono text-neutral-600">Publication code</span>
-        <input
-          v-model="publicationCode" required placeholder="NV, BK, NVW, BKW…" list="pub-codes"
-          class="mt-1 w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-neutral-900"
+        <span class="text-xs font-mono text-neutral-600">Publication</span>
+        <!-- Phase 0: chosen from the Publications list (handle > Publications),
+             so an edition can't be filed under a code readers can't buy. -->
+        <select
+          v-model="publicationCode" required
+          class="mt-1 w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-neutral-900"
         >
-        <!-- Free text, not a locked dropdown — a new publication code
-             needs no code change to use here or in the CMS, same
-             reasoning as PublicationSection being growable rather than
-             a fixed list. These four are just the ones known so far,
-             offered as suggestions, not the only valid values. -->
-        <datalist id="pub-codes">
-          <option value="NV" /><option value="BK" /><option value="NVW" /><option value="BKW" />
-        </datalist>
+          <option value="" disabled>{{ pubsLoading ? 'Loading…' : 'Choose a publication' }}</option>
+          <option v-for="p in publications" :key="p.code" :value="p.code">{{ p.code }} — {{ p.name }}</option>
+        </select>
+        <span v-if="selectedPub" class="block mt-1 text-[11px] text-neutral-500">
+          {{ selectedPub.coverDays > 1 ? `One edition covers ${selectedPub.coverDays} days from its date (e.g. a weekend edition dated Saturday covers Saturday–Sunday).` : 'One edition covers its own date.' }}
+          <template v-if="selectedPub.latestEdition"> Latest: {{ selectedPub.latestEdition.date }}.</template>
+        </span>
+        <span v-if="pubsError" class="block mt-1 text-[11px] text-red-600">{{ pubsError }}</span>
       </label>
 
       <div class="grid grid-cols-2 gap-3">
@@ -73,6 +75,22 @@ const api = useHandleApi()
 
 const date = ref('')
 const publicationCode = ref('')
+const publications = ref([])
+const pubsLoading = ref(true)
+const pubsError = ref('')
+const selectedPub = computed(() => publications.value.find((p) => p.code === publicationCode.value) || null)
+
+onMounted(async () => {
+  try {
+    const res = await api.catalogue.publications()
+    publications.value = (res.publications || []).filter((p) => p.active)
+    if (publications.value.length === 1) publicationCode.value = publications.value[0].code
+  } catch (e) {
+    pubsError.value = e?.data?.statusMessage || 'Publications could not be loaded.'
+  } finally {
+    pubsLoading.value = false
+  }
+})
 const volume = ref('')
 const issueNumber = ref('')
 const file = ref(null)

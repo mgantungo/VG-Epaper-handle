@@ -247,7 +247,17 @@ useHead({
 
 const PAGE_SIZE = 100
 const POLL_MS = 10000
-const PUBLICATION_NAMES = { NV: 'New Vision', BK: 'Bukedde', NVW: 'New Vision Weekend', BKW: 'Bukedde Weekend' }
+// Names come from the Publications list (Phase 0); these are only the fallback
+// until it loads, or for an admin who can't reach it.
+const publicationNames = ref({ NV: 'New Vision', BK: 'Bukedde', NVW: 'New Vision Weekend', BKW: 'Bukedde Weekend' })
+onMounted(async () => {
+  try {
+    const res = await useHandleApi().catalogue.publications()
+    const names = {}
+    for (const p of res.publications || []) names[p.code] = p.name
+    publicationNames.value = { ...publicationNames.value, ...names }
+  } catch { /* keep the fallback names */ }
+})
 const STATUS = {
   published: { label: 'Published', short: 'published', bar: 'bg-emerald-500', text: 'text-emerald-700' },
   ready_for_review: { label: 'Ready for review', short: 'review', bar: 'bg-amber-500', text: 'text-amber-700' },
@@ -482,7 +492,7 @@ const activity = computed(() => {
 })
 
 // ---------- formatting ----------
-const pubName = code => PUBLICATION_NAMES[code] || code || 'Unknown'
+const pubName = code => publicationNames.value[code] || code || 'Unknown'
 function fmtDate(iso, long = false) {
   if (!iso) return '–'
   const [y, m, d] = iso.split('-').map(Number)
