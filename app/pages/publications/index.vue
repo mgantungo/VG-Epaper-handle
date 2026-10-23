@@ -44,13 +44,14 @@
           <div class="table-scroll mt-3">
             <table v-if="publications.length" class="otable">
               <thead>
-                <tr><th>Code</th><th>Title</th><th>Edition</th><th>Language</th><th>Frequency</th><th>One edition covers</th><th>Latest edition</th><th class="text-right">Plans on sale</th><th>Status</th><th /></tr>
+                <tr><th>Code</th><th>Title</th><th>Edition</th><th>Section</th><th>Language</th><th>Frequency</th><th>One edition covers</th><th>Latest edition</th><th class="text-right">Plans on sale</th><th>Status</th><th /></tr>
               </thead>
               <tbody>
                 <tr v-for="p in publications" :key="p.id" :class="pubForm?.id === p.id ? 'row-on' : ''">
                   <td><span class="chip" :style="chipStyle(p.colour)">{{ p.code }}</span></td>
                   <td class="font-semibold">{{ p.title }}</td>
                   <td>{{ p.editionLabel || p.name }}</td>
+                  <td>{{ categoryLabel(p.category) }}</td>
                   <td>{{ p.language || '—' }}</td>
                   <td>{{ frequencyLabel(p.frequency) }}<span v-if="p.scheduleNote" class="text-[12px] muted"> · {{ p.scheduleNote }}</span></td>
                   <td>{{ p.coverDays > 1 ? `${p.coverDays} days from its date` : 'its date' }}</td>
@@ -85,6 +86,12 @@
             <div>
               <label class="label" for="pf-label">Edition label</label>
               <input id="pf-label" v-model.trim="pubForm.editionLabel" class="field" placeholder="Daily, Weekend…">
+            </div>
+            <div>
+              <label class="label" for="pf-cat">Section on landing page</label>
+              <select id="pf-cat" v-model="pubForm.category" class="field">
+                <option v-for="c in CATEGORIES" :key="c.value" :value="c.value">{{ c.label }}</option>
+              </select>
             </div>
             <div>
               <label class="label" for="pf-freq">Frequency</label>
@@ -324,6 +331,13 @@ const FREQUENCIES = [
   { value: 'irregular', label: 'No set schedule', cover: 1 }
 ]
 const frequencyLabel = (f) => FREQUENCIES.find((x) => x.value === f)?.label || f
+const CATEGORIES = [
+  { value: 'newspaper', label: 'Newspapers' },
+  { value: 'supplement', label: 'Pullouts and supplements' },
+  { value: 'magazine', label: 'Magazines' },
+  { value: 'other', label: 'Other' }
+]
+const categoryLabel = (c) => CATEGORIES.find((x) => x.value === c)?.label || 'Newspapers'
 
 const loading = ref(true)
 const busy = ref(false)
@@ -369,8 +383,8 @@ const activePublications = computed(() => publications.value.filter((p) => p.act
 const pubForm = ref(null)
 function editPublication(p) {
   pubForm.value = p
-    ? { ...p, originalCoverDays: p.coverDays, colour: p.colour || '#2f55e4', description: p.description || '', scheduleNote: p.scheduleNote || '', editionLabel: p.editionLabel || '', language: p.language || '' }
-    : { id: null, code: '', title: '', name: '', editionLabel: '', language: 'English', frequency: 'daily', coverDays: 1, scheduleNote: '', colour: '#2f55e4', description: '', active: true, sortOrder: publications.value.length }
+    ? { ...p, category: p.category || 'newspaper', originalCoverDays: p.coverDays, colour: p.colour || '#2f55e4', description: p.description || '', scheduleNote: p.scheduleNote || '', editionLabel: p.editionLabel || '', language: p.language || '' }
+    : { id: null, code: '', title: '', name: '', editionLabel: '', category: 'newspaper', language: 'English', frequency: 'daily', coverDays: 1, scheduleNote: '', colour: '#2f55e4', description: '', active: true, sortOrder: publications.value.length }
 }
 function onFrequency() {
   const f = FREQUENCIES.find((x) => x.value === pubForm.value.frequency)
@@ -379,7 +393,7 @@ function onFrequency() {
 async function savePublication() {
   const f = pubForm.value
   const body = {
-    title: f.title, name: f.name, editionLabel: f.editionLabel || null, language: f.language || null,
+    title: f.title, name: f.name, editionLabel: f.editionLabel || null, category: f.category || 'newspaper', language: f.language || null,
     frequency: f.frequency, coverDays: Number(f.coverDays) || 1, scheduleNote: f.scheduleNote || null,
     colour: f.colour || null, description: f.description || null, active: Boolean(f.active), sortOrder: Number(f.sortOrder) || 0
   }
