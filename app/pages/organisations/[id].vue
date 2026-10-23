@@ -1,7 +1,7 @@
 <!--
   File:      /var/www/VGEpaper/handle/app/pages/organisations/[id].vue
   Repo path: apps/handle/app/pages/organisations/[id].vue          NEW FILE
-  URL:       /organisations/:id   (?tab=periods|members|spreadsheet|admins|activity|details)
+  URL:       /organisations/:id   (?tab=periods|members|spreadsheet|admins|activity|usage|details)
 
   One organisation: status actions (suspend / reactivate / archive, each
   with a reason), seat and paid-period summary, and tabs for paid periods
@@ -13,6 +13,9 @@
   publication (components/PaidPeriodLines.vue), each with its own seats and
   amount; a seat-use strip per publication; and each member's publications
   can be switched on or off in the Members tab.
+  UPDATED (Phases 1–4, analytics): "Usage" tab (components/OrgUsageGrid.vue):
+  which days each member was active and which papers they opened, seat use;
+  names open the reader's analytics page.
 -->
 <template>
   <div class="orgdesk">
@@ -229,6 +232,11 @@
             <OrgImportPanel :org-id="id" :paid-until="summary.current?.coverageEnd || null" @applied="onImported" />
           </div>
 
+          <!-- Usage (Phases 1–4) -->
+          <div v-else-if="tab === 'usage'" class="p-4">
+            <OrgUsageGrid :org-id="id" />
+          </div>
+
           <!-- Activity -->
           <div v-else-if="tab === 'activity'" class="p-4">
             <ul class="divide-y" style="border-color: var(--line)">
@@ -368,13 +376,14 @@ async function act(fn, okText) {
 }
 
 // ---- tabs ----
-const tab = ref(['periods', 'admins', 'members', 'spreadsheet', 'activity', 'details'].includes(route.query.tab) ? route.query.tab : 'periods')
+const tab = ref(['periods', 'admins', 'members', 'spreadsheet', 'activity', 'usage', 'details'].includes(route.query.tab) ? route.query.tab : 'periods')
 const tabs = computed(() => [
   { key: 'periods', label: 'Paid periods', count: detail.value?.contracts.length },
   { key: 'admins', label: 'Org Admins', count: detail.value?.admins.length },
   { key: 'members', label: 'Members', count: detail.value ? detail.value.seats.inUse + detail.value.seats.suspended : undefined },
   { key: 'spreadsheet', label: 'Spreadsheet' },
   { key: 'activity', label: 'Activity' },
+  { key: 'usage', label: 'Usage' },
   { key: 'details', label: 'Details' }
 ])
 function setTab(k) {

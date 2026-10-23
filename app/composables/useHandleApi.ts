@@ -12,6 +12,8 @@
  *
  * UPDATED (Phase 0): `catalogue`, a client for /api/catalogue/*
  * (publications, plans and prices), and orgs.setMemberPublications.
+ *
+ * UPDATED (Phases 1–4): `analytics`, a client for /api/analytics/*.
  */
 export function useHandleApi() {
   async function login(email, password) {
@@ -86,5 +88,19 @@ export function useHandleApi() {
     suggestSplit: (publications) => cat('plans/split-suggestion', { method: 'POST', body: { publications } })
   }
 
-  return { login, verifyToken, logout, me, listEditions, createEdition, getEdition, orgRights, orgs, catalogue }
+  // Phases 1–4: reader analytics (server/api/analytics/[...path].ts).
+  // range = { from, to } as YYYY-MM-DD (Kampala days).
+  const ana = (path, query = {}) => $fetch(`/api/analytics/${path}`, { query })
+  const analytics = {
+    overview: (range) => ana('overview', range),
+    curve: (editions) => ana('curve', editions ? { editions } : {}),
+    sections: (query) => ana('sections', query),
+    readers: (query) => ana('readers', query),
+    reader: (userId, range) => ana(`readers/${userId}`, range),
+    revenue: (range) => ana('revenue', range),
+    orgUsage: (orgId, month) => ana(`orgs/${orgId}/usage`, month ? { month } : {}),
+    rebuild: (range) => $fetch('/api/analytics/rebuild', { method: 'POST', body: range })
+  }
+
+  return { login, verifyToken, logout, me, listEditions, createEdition, getEdition, orgRights, orgs, catalogue, analytics }
 }

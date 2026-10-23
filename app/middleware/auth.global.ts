@@ -9,6 +9,12 @@
  * JWT lives in an httpOnly cookie the client can't inspect anyway.
  */
 export default defineNuxtRouteMiddleware(async (to) => {
+  // UPDATED (Phases 1–4): browser only. During server rendering $fetch
+  // doesn't carry the browser's session cookie, so /api/auth/me always
+  // failed there and every directly opened or bookmarked page (e.g.
+  // /analytics?from=…) was sent to /login and then on to the Editions
+  // desk. The check now runs once the page loads in the browser.
+  if (import.meta.server) return
   const admin = useAdminStore()
 
   if (!admin.admin && !admin.pendingEmail) {
