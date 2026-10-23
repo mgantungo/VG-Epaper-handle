@@ -201,7 +201,7 @@
             <div class="grid gap-4 md:grid-cols-3">
               <div><label class="label" for="np-price">Price (UGX) *</label><input id="np-price" v-model="np.price" type="number" min="0" step="1" class="field mono" required></div>
               <div><label class="label">Works out per month</label><p class="field mono flex items-center bg-black/[.02]">{{ perMonth(np) }}</p></div>
-              <div><label class="label" for="np-from">On sale from</label><input id="np-from" v-model="np.validFrom" type="date" class="field mono" :min="today"></div>
+              <div><label class="label" for="np-from">On sale from</label><input id="np-from" v-model="np.validFrom" type="date" class="field mono" min="2000-01-01"></div>
             </div>
 
             <SplitEditor v-if="np.publications.length > 1" v-model="np.revenueSplit" :codes="np.publications" :busy="busy" @suggest="suggestFor(np)" />
@@ -247,10 +247,10 @@
             <div class="grid gap-4 md:grid-cols-3">
               <div><label class="label" for="nv-price">New price (UGX)</label><input id="nv-price" v-model="version.price" type="number" min="0" step="1" class="field mono" required></div>
               <div><label class="label">Works out per month</label><p class="field mono flex items-center bg-white/60">{{ perMonth({ ...selected, price: version.price }) }}</p></div>
-              <div><label class="label" for="nv-from">Applies from</label><input id="nv-from" v-model="version.validFrom" type="date" class="field mono" :min="today" required></div>
+              <div><label class="label" for="nv-from">Applies from</label><input id="nv-from" v-model="version.validFrom" type="date" class="field mono" min="2000-01-01" required></div>
             </div>
             <SplitEditor v-if="selected.publications.length > 1" v-model="version.revenueSplit" :codes="selected.publications" :busy="busy" @suggest="suggestFor(version, selected.publications)" />
-            <p class="text-[12px] muted">Saved as version {{ nextVersion }}. People who already paid keep what they bought; past revenue never changes.</p>
+            <p class="text-[12px] muted">Saved as version {{ nextVersion }}. The date can be in the past. People who already paid keep what they bought and what they paid; past revenue never changes.</p>
             <p v-if="formError" class="notice notice-err">{{ formError }}</p>
             <div class="flex justify-end"><button class="btn-ink" :disabled="busy">{{ busy ? 'Saving…' : `Save as version ${nextVersion}` }}</button></div>
           </form>
